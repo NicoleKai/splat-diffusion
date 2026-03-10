@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splat-Diffusion</title>
+
+  <!-- KaTeX -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ]
+    });"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0e0e12;
+      --bg-card: #16161c;
+      --bg-code: #1c1c26;
+      --border: #2a2a3a;
+      --text: #c8c8d4;
+      --text-dim: #7a7a8e;
+      --text-bright: #e8e8f0;
+      --accent: #6c8cbf;
+      --accent-glow: #6c8cbf30;
+      --accent-bright: #8caee0;
+      --eq-bg: #12121a;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      color: var(--text);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 80px 0 48px;
+    }
+
+    .hero h1 {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .hero .subtitle {
+      font-size: 1.05rem;
+      font-style: italic;
+      color: var(--text-dim);
+      max-width: 600px;
+      margin: 0 auto 28px;
+      line-height: 1.6;
+    }
+
+    .hero .author {
+      font-size: 1rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    .hero .affiliation {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+      margin-bottom: 32px;
+    }
+
+    .links {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .links a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      background: var(--bg-card);
+    }
+
+    .links a:hover {
+      border-color: var(--accent);
+      color: var(--accent-bright);
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .links a svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      border: none;
+      height: 1px;
+      background: var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Sections ── */
+    .section { margin-bottom: 56px; }
+
+    .section h2 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--accent-bright);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 20px;
+    }
+
+    .section p {
+      margin-bottom: 16px;
+      text-align: justify;
+    }
+
+    .section p:last-child { margin-bottom: 0; }
+
+    /* ── Key Insight Box ── */
+    .insight {
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      padding: 20px 24px;
+      margin: 28px 0;
+      background: var(--bg-card);
+      font-style: italic;
+      color: var(--text-bright);
+      line-height: 1.7;
+    }
+
+    /* ── Equation blocks ── */
+    .equation {
+      background: var(--eq-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px 24px;
+      margin: 24px 0;
+      text-align: center;
+      overflow-x: auto;
+    }
+
+    /* ── Method Steps ── */
+    .method-steps {
+      list-style: none;
+      margin: 24px 0;
+      padding: 0;
+    }
+
+    .method-steps li {
+      position: relative;
+      padding: 14px 20px 14px 20px;
+      margin-bottom: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      line-height: 1.65;
+    }
+
+    .method-steps li strong {
+      color: var(--accent-bright);
+    }
+
+    /* ── Citation ── */
+    .citation-block {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: var(--text-dim);
+      overflow-x: auto;
+      white-space: pre;
+      position: relative;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s ease;
+    }
+
+    .copy-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent-bright);
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 40px 0 60px;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* ── KaTeX color override ── */
+    .katex { color: var(--text-bright); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .hero { padding: 48px 0 32px; }
+      .hero h1 { font-size: 2rem; }
+      .container { padding: 0 16px; }
+      .citation-block { font-size: 0.72rem; padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- ── Hero ── -->
+    <div class="hero">
+      <h1>Splat-Diffusion</h1>
+      <p class="subtitle">
+        Training-Free Contextual Steering of Diffusion Language Models
+        via Dual-Pass Embedding Manifold Divergence
+      </p>
+      <p class="author">Nicole Kohm</p>
+      <p class="affiliation">Exobody Systems Inc. &middot; Morrison, Colorado</p>
+      <div class="links">
+        <a href="splat-diffusion.pdf">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zm-3 9v4h2v-4h3l-4-4-4 4h3z"/></svg>
+          PDF
+        </a>
+        <a href="https://github.com/NicoleKai/splat-diffusion">
+          <svg viewBox="0 0 24 24"><path d="M12 .3a12 12 0 00-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.31-5.47-1.34-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016.02 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 011.23 3.22c0 4.61-2.8 5.62-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0012 .3"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ── Abstract ── -->
+    <div class="section">
+      <h2>Abstract</h2>
+      <p>
+        We propose a method for maintaining contextual grounding in diffusion-based text generation
+        without additional fine-tuning. The mechanism exploits a mathematical property of well-trained
+        transformer embedding spaces: the Jacobian of the input-to-representation mapping is
+        sufficiently smooth that representational structure learned during autoregressive pretraining
+        remains valid under non-autoregressive generation topologies. A dual-pass embedding comparison,
+        computing a candidate response's representation both in isolation and conditioned on
+        conversational context, yields a scalar divergence signal that steers diffusion denoising
+        toward contextually relevant outputs. We formalize why this works without retraining: the
+        neuron-to-manifold type coercion inherent in transformer architectures preserves semantic
+        continuity when Jacobians are smooth, allowing the pretrained model to serve as its own
+        zero-shot relevance critic during parallel generation.
+      </p>
+    </div>
+
+    <!-- ── Problem ── -->
+    <div class="section">
+      <h2>Problem Statement</h2>
+      <p>
+        Diffusion-based text generation offers parallel token production, global structural coherence,
+        and iterative refinement. Removing sequential token prediction, however, eliminates the implicit
+        planning mechanism autoregressive models exploit: each token chosen in light of all preceding
+        tokens. The result is semantic drift. Diffusion-generated responses gravitate toward generic,
+        context-insensitive outputs because the generation process lacks an intrinsic tether to the
+        conversational context that prompted them.
+      </p>
+      <p>
+        Existing remedies (fine-tuning diffusion models on dialogue data, or adapting classifier-free
+        guidance from image diffusion) require additional training. We argue this is unnecessary.
+      </p>
+    </div>
+
+    <!-- ── Core Thesis ── -->
+    <div class="section">
+      <h2>Core Thesis</h2>
+      <p>
+        The representational quality of a pretrained transformer, specifically its embedding manifold
+        geometry, is a property of its weights, not its generation procedure. Autoregressive training
+        optimizes for next-token prediction, but the side effect is a densely structured embedding space
+        where semantic similarity, topical relevance, and contextual dependency are encoded as geometric
+        relationships: distances, angles, curvatures.
+      </p>
+      <p>
+        This structure survives changes in generation topology because the Jacobian of the mapping from
+        token sequences to manifold positions is smooth. Let $\mathbf{f}_\theta : \mathbf{T}^* \to \mathbb{R}^d$
+        map a token sequence to its embedding representation under frozen parameters $\theta$. If the Jacobian
+      </p>
+
+      <div class="equation">
+        $$\mathbf{J}_f = \frac{\partial \mathbf{f}}{\partial \mathbf{x}}$$
+      </div>
+
+      <p>
+        has bounded spectral norm and condition number across the relevant input domain, then small
+        perturbations in input produce proportionally small perturbations in representation. The manifold
+        geometry, and any signal derived from it, remains reliable even when the input was produced by a
+        diffusion process rather than autoregressive sampling.
+      </p>
+
+      <div class="insight">
+        A single pretrained autoregressive model can serve as both the generation substrate (its weights
+        parameterize the diffusion denoiser) and the relevance critic (its embedding space provides the
+        steering signal), with zero additional training.
+      </div>
+    </div>
+
+    <!-- ── Method ── -->
+    <div class="section">
+      <h2>Proposed Method</h2>
+      <p>
+        At each diffusion denoising step $t$, given candidate response tokens $\mathbf{r}_t$:
+      </p>
+
+      <ol class="method-steps">
+        <li>
+          <strong>(a) Forward pass 1:</strong> Compute
+          $\mathbf{h}_r = \mathbf{f}_\theta(\mathbf{r}_t)$.
+          The embedding of the response in isolation.
+        </li>
+        <li>
+          <strong>(b) Forward pass 2:</strong> Compute
+          $\mathbf{h}_{c|r} = \mathbf{f}_\theta(\mathbf{c} \oplus \mathbf{r}_t)$
+          restricted to response token positions. The embedding of the response conditioned on
+          conversation $\mathbf{c}$.
+        </li>
+        <li>
+          <strong>(c) Compute divergence:</strong>
+          <div class="equation" style="margin: 14px 0 6px;">
+            $$\delta_t = 1 - \cos(\mathbf{h}_r,\; \mathbf{h}_{c|r})$$
+          </div>
+        </li>
+        <li>
+          <strong>(d) Steer:</strong> If $\delta_t$ falls below threshold $\tau$ (response
+          semantics insufficiently shaped by context), inject a gradient nudge toward higher
+          divergence, biasing the next denoising step toward candidates whose meaning is more
+          context-dependent.
+        </li>
+      </ol>
+
+      <p>
+        Threshold $\tau$ and nudge magnitude are hyperparameters. We propose adaptive scheduling tied
+        to diffusion timestep: looser early in denoising when the response is still mostly noise,
+        tightening as the output crystallizes and semantic identity stabilizes.
+      </p>
+    </div>
+
+    <!-- ── Type Coercion ── -->
+    <div class="section">
+      <h2>Theoretical Justification: The Type Coercion Argument</h2>
+      <p>
+        Individual neuron activations in a transformer are scalars, elements of $\mathbb{R}$. A hidden
+        state is a vector in $\mathbb{R}^d$. Semantically meaningful representations do not fill
+        $\mathbb{R}^d$ uniformly; they concentrate on a lower-dimensional manifold
+        $\mathcal{M} \subset \mathbb{R}^d$ whose shape was sculpted by training data statistics. The
+        mapping from token sequences to points on $\mathcal{M}$ is a <em>type coercion</em>: discrete
+        symbolic objects (tokens) are cast to continuous manifold coordinates (embeddings).
+      </p>
+      <p>
+        For this coercion to preserve semantic content, for nearby meanings to map to nearby points on
+        $\mathcal{M}$, the Jacobian of the mapping must be smooth: bounded, non-degenerate, slowly
+        varying. Autoregressive training with gradient descent inherently produces this. Exploding or
+        collapsing Jacobians would surface as training instability (gradient explosion, vanishing
+        gradients), so <em>stable convergence is indirect evidence of Jacobian regularity</em>.
+      </p>
+      <p>
+        The embedding manifold geometry and its Jacobian smoothness are properties of the frozen weights
+        $\theta$, not of how tokens were sampled. They remain valid when generation topology changes from
+        autoregressive to diffusion. The dual-pass divergence signal is a geometric probe of
+        $\mathcal{M}$. It asks: "does the conversation shift where this response sits on
+        $\mathcal{M}$?" That question is well-posed regardless of how the response was produced.
+      </p>
+
+      <div class="insight">
+        No fine-tuning is required: the manifold is already smooth, the probe already works, and
+        changing the generation process damages neither.
+      </div>
+    </div>
+
+    <!-- ── Key Contribution ── -->
+    <div class="section">
+      <h2>Expected Contributions</h2>
+      <p>
+        A training-free method for contextual coherence in diffusion text generation. A formal grounding
+        of the method in Jacobian smoothness of pretrained embedding manifolds. Empirical evidence that
+        autoregressive representational quality transfers zero-shot to non-autoregressive generation
+        steering. And a reframe that may be the most consequential piece:
+      </p>
+
+      <div class="insight">
+        Autoregressive training is not a generation strategy; it is a representational optimization
+        whose products are topology-independent.
+      </div>
+    </div>
+
+    <!-- ── Limitations ── -->
+    <div class="section">
+      <h2>Limitations and Open Questions</h2>
+      <p>
+        The Jacobian smoothness assumption may not hold uniformly across all manifold regions.
+        Adversarial or far-out-of-distribution inputs could probe zones where the Jacobian degenerates.
+        Characterizing the boundary of the safe region, the manifold subspace where the smoothness
+        guarantee holds with confidence, is necessary follow-up work.
+      </p>
+      <p>
+        The dual forward pass doubles compute per steering check. Whether sparse checking at every
+        $k$-th step preserves steering quality is an open empirical question.
+      </p>
+      <p>
+        The method inherits whatever biases exist in the pretrained model's embedding space. It creates
+        no new representational capacity; it repurposes existing geometry. If the pretrained model has
+        blind spots, splat-diffusion will share them.
+      </p>
+      <p>
+        Long-range coherence across multi-paragraph or multi-turn outputs may require more than a single
+        scalar signal. Extensions to vector-valued or trajectory-valued steering, tracking not just
+        "how different" but "different in which direction on $\mathcal{M}$," are a natural next step.
+      </p>
+    </div>
+
+    <!-- ── Citation ── -->
+    <div class="section">
+      <h2>Citation</h2>
+      <div class="citation-block">
+        <button class="copy-btn" onclick="copyBib()">Copy</button>@article{kohm2026splatdiffusion,
+  title   = {Splat-Diffusion: Training-Free Contextual Steering of
+             Diffusion Language Models via Dual-Pass Embedding
+             Manifold Divergence},
+  author  = {Kohm, Nicole},
+  year    = {2026},
+  url     = {https://nicolekai.github.io/splat-diffusion}
+}</div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ── Footer ── -->
+    <footer>
+      <p>&copy; 2026 Nicole Kohm &middot; <a href="https://github.com/NicoleKai">GitHub</a></p>
+    </footer>
+
+  </div>
+
+  <script>
+    function copyBib() {
+      const bib = document.querySelector('.citation-block').textContent
+        .replace('Copy', '').trim();
+      navigator.clipboard.writeText(bib).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+      });
+    }
+  </script>
+
+</body>
+</html>
